@@ -10,19 +10,13 @@ class ActivityController extends Controller
 {
     public function store(Request $request)
     {
-        // Validasi data yang masuk dari script Python
-        $validated = $request->validate([
-            'event_type' => 'required|string',
-            'confidence_score' => 'nullable|numeric',
+        \App\Models\LampActivity::create([
+            'device_id'        => $request->device_id ?? 'CCTV-YOLOv8',
+            'event_type'       => $request->event_type,
+            'confidence_score' => $request->confidence, // Kirim dari Python
+            'recorded_at'      => now(),
         ]);
 
-        // Simpan ke database di Ubuntu Server
-        $log = LampActivity::create([
-            'event_type' => $validated['event_type'],
-            'confidence_score' => $validated['confidence_score'] ?? null,
-            'recorded_at' => now(),
-        ]);
-
-        return response()->json(['message' => 'Data berhasil dicatat', 'data' => $log], 201);
+        return response()->json(['message' => 'Data logged!'], 201);
     }
 }

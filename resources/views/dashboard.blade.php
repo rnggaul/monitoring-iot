@@ -12,6 +12,7 @@
         .stat-card { border: none; border-radius: 15px; transition: transform 0.3s; }
         .stat-card:hover { transform: translateY(-5px); }
         .bg-gradient-primary { background: linear-gradient(45deg, #4e73df, #224abe); color: white; }
+        .table-responsive { max-height: 400px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -28,147 +29,120 @@
             </div>
         </a>
         
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto align-items-center">
-                <li class="nav-item">
-                    <a class="nav-link active fw-semibold text-primary" href="#"><i class="fas fa-columns me-1"></i> Dashboard</a>
-                </li>
-                <li class="nav-item px-3">
-                    <div class="vr d-none d-lg-block" style="height: 20px;"></div>
-                </li>
-                <li class="nav-item">
-                    <span class="nav-link text-muted small">
-                        <i class="fas fa-circle text-success me-1" style="font-size: 8px;"></i> 
-                        Server: <strong>192.168.1.xxx</strong>
-                    </span>
-                </li>
-            </ul>
+        <div class="ms-auto d-flex align-items-center">
+            <span class="text-muted small me-3">
+                <i class="fas fa-circle text-success me-1" style="font-size: 8px;"></i> 
+                Server: <strong>{{ request()->ip() }}</strong>
+            </span>
+            <a href="" class="btn btn-sm btn-outline-primary"><i class="fas fa-sync"></i> Refresh</a>
         </div>
     </div>
 </nav>
 
-<div class="container">
-    <div class="row g-4 mb-4 text-center">
-        <div class="col-md-3">
-            <div class="card stat-card shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase small">Total Durasi Hari Ini</h6>
-                    <h3 class="fw-bold">02:45:10</h3>
-                    <p class="text-success small mb-0"><i class="fas fa-bolt"></i> Jam:Menit:Detik</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase small">Frekuensi Lampu Nyala</h6>
-                    <h3 class="fw-bold">14</h3>
-                    <p class="text-muted small mb-0">Kali Aktivasi</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase small">Confidence Score YOLO</h6>
-                    <h3 class="fw-bold text-primary">88%</h3>
-                    <p class="text-muted small mb-0">Rata-rata Akurasi</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card shadow-sm h-100 bg-gradient-primary">
-                <div class="card-body">
-                    <h6 class="text-uppercase small">Status Sistem</h6>
-                    <h3 class="fw-bold"><i class="fas fa-check-circle"></i> Aktif</h3>
-                    <p class="small mb-0 text-white-50">Menunggu Trigger PIR...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0 h-100" style="border-radius: 15px;">
-                <div class="card-header bg-white border-0 pt-3 fw-bold">Tren Konsumsi Energi (7 Hari Terakhir)</div>
-                <div class="card-body">
-                    <canvas id="energyChart" height="150"></canvas>
-                </div>
-            </div>
-        </div>
+<div class="container py-4">
+    <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100" style="border-radius: 15px;">
-                <div class="card-header bg-white border-0 pt-3 fw-bold">Live Status</div>
+            <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body text-center">
-                    <div class="p-4 rounded-circle bg-light d-inline-block mb-3 shadow-sm">
-                        <i class="fas fa-lightbulb fa-4x text-warning"></i>
-                    </div>
-                    <h5>Lampu Ruangan: <strong>NYALA</strong></h5>
-                    <hr>
-                    <p class="text-muted small">Terakhir diperbarui: <br> 25 April 2026, 10:35 WIB</p>
+                    <div class="text-muted small text-uppercase fw-bold mb-2">Total Aktivasi Lampu</div>
+                    <h1 class="display-5 fw-bold text-dark">{{ $totalNyala }}</h1>
+                    <span class="badge bg-light text-muted">Berdasarkan Database</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body text-center">
+                    <div class="text-muted small text-uppercase fw-bold mb-2">Rata-rata Akurasi YOLO</div>
+                    <h1 class="display-5 fw-bold text-primary">{{ number_format($avgConfidence * 100, 1) }}%</h1>
+                    <span class="badge bg-light text-muted">Validasi Computer Vision</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 {{ $statusSekarang == 'LAMP_ON' ? 'bg-success text-white' : 'bg-secondary text-white' }}">
+                <div class="card-body text-center">
+                    <div class="text-white-50 small text-uppercase fw-bold mb-2">Status Lampu Saat Ini</div>
+                    <h1 class="display-5 fw-bold">
+                        <i class="fas {{ $statusSekarang == 'LAMP_ON' ? 'fa-lightbulb' : 'fa-moon' }}"></i>
+                        {{ $statusSekarang == 'LAMP_ON' ? 'NYALA' : 'MATI' }}
+                    </h1>
+                    <span class="text-white-50 small">Live dari Database</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card shadow-sm border-0 mb-5" style="border-radius: 15px;">
-        <div class="card-header bg-white border-0 pt-3 fw-bold">Log Aktivitas Real-time</div>
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-0 pt-3">
+            <h5 class="fw-bold"><i class="fas fa-history me-2"></i>History Log Terkini</h5>
+        </div>
         <div class="table-responsive p-3">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Waktu</th>
-                        <th>Event</th>
-                        <th>Sumber Data</th>
+                        <th>Waktu (DB)</th>
+                        <th>Perangkat</th>
+                        <th>Kejadian</th>
                         <th>Akurasi YOLO</th>
-                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
+                    @forelse($activities as $log)
                     <tr>
-                        <td>10:35:12</td>
-                        <td><span class="badge bg-info text-dark">HUMAN_DETECTED</span></td>
-                        <td>CachyOS Laptop</td>
-                        <td>92.4%</td>
-                        <td><span class="badge bg-success">Lampu ON</span></td>
+                        <td class="small">{{ $log->created_at->format('H:i:s d-m-Y') }}</td>
+                        <td><code class="text-primary">{{ $log->device_id }}</code></td>
+                        <td>
+                            <span class="badge {{ str_contains($log->event_type, 'ON') ? 'bg-success' : 'bg-danger' }}">
+                                {{ $log->event_type }}
+                            </span>
+                        </td>
+                        <td class="fw-bold text-center">
+                            {{ $log->confidence_score ? number_format($log->confidence_score * 100, 1).'%' : '-' }}
+                        </td>
                     </tr>
+                    @empty
                     <tr>
-                        <td>10:30:05</td>
-                        <td><span class="badge bg-warning text-dark">PIR_TRIGGERED</span></td>
-                        <td>Ubuntu Server</td>
-                        <td>-</td>
-                        <td>Sistem Terjaga</td>
+                        <td colspan="4" class="text-center text-muted">Belum ada data di database server.</td>
                     </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+</body>
 
 <script>
-    const ctx = document.getElementById('energyChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
-            datasets: [{
-                label: 'Durasi Lampu Nyala (Menit)',
-                data: [45, 120, 60, 200, 150, 30, 10],
-                fill: true,
-                backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                borderColor: 'rgba(78, 115, 223, 1)',
-                tension: 0.4
-            }]
-        },
-        options: {
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
-        }
-    });
+    function refreshData() {
+        fetch('/api/stats-dashboard') // Sesuaikan URL route kamu
+            .then(response => response.json())
+            .then(data => {
+                // Update Angka Total
+                document.getElementById('total-nyala').innerText = data.totalNyala;
+                document.getElementById('avg-conf').innerText = data.avgConfidence;
+                
+                // Update Card Status
+                const statusCard = document.getElementById('status-card');
+                const statusText = document.getElementById('status-text');
+                
+                if(data.status === 'NYALA') {
+                    statusCard.classList.remove('bg-secondary');
+                    statusCard.classList.add('bg-success');
+                    statusText.innerText = 'NYALA';
+                } else {
+                    statusCard.classList.remove('bg-success');
+                    statusCard.classList.add('bg-secondary');
+                    statusText.innerText = 'MATI';
+                }
+
+                // Update Tabel (Opsional: Rombak tabel lewat JS)
+            });
+    }
+
+    // Jalankan tiap 2 detik
+    setInterval(refreshData, 2000);
 </script>
-</body>
 </html>

@@ -13,6 +13,7 @@
         .stat-card:hover { transform: translateY(-5px); }
         .bg-gradient-primary { background: linear-gradient(45deg, #4e73df, #224abe); color: white; }
         .table-responsive { max-height: 400px; overflow-y: auto; }
+        canvas { width: 100% !important; height: 300px !important; }
     </style>
 </head>
 <body>
@@ -28,24 +29,24 @@
                 <small class="text-muted fw-normal" style="font-size: 0.7rem;">IoT Energy Monitoring System</small>
             </div>
         </a>
-        
         <div class="ms-auto d-flex align-items-center">
             <span class="text-muted small me-3">
                 <i class="fas fa-circle text-success me-1" style="font-size: 8px;"></i> 
                 Server: <strong>{{ request()->ip() }}</strong>
             </span>
-            <a href="" class="btn btn-sm btn-outline-primary"><i class="fas fa-sync"></i> Refresh</a>
+            <button onclick="location.reload()" class="btn btn-sm btn-outline-primary"><i class="fas fa-sync"></i> Refresh</button>
         </div>
     </div>
 </nav>
 
 <div class="container py-4">
+    <!-- Row Statistik Utama -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body text-center">
                     <div class="text-muted small text-uppercase fw-bold mb-2">Total Aktivasi Lampu</div>
-                    <h1 class="display-5 fw-bold text-dark">{{ $totalNyala }}</h1>
+                    <h1 class="display-5 fw-bold text-dark" id="total-nyala">{{ $totalNyala }}</h1>
                     <span class="badge bg-light text-muted">Berdasarkan Database</span>
                 </div>
             </div>
@@ -55,19 +56,29 @@
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body text-center">
                     <div class="text-muted small text-uppercase fw-bold mb-2">Rata-rata Akurasi YOLO</div>
-                    <h1 class="display-5 fw-bold text-primary">{{ number_format($avgConfidence * 100, 1) }}%</h1>
+                    <h1 class="display-5 fw-bold text-primary" id="avg-conf">{{ number_format($avgConfidence * 100, 1) }}%</h1>
                     <span class="badge bg-light text-muted">Validasi Computer Vision</span>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 {{ $statusSekarang == 'LAMP_ON' ? 'bg-success text-white' : 'bg-secondary text-white' }}">
+            <div class="card border-0 shadow-sm rounded-4 bg-gradient-primary text-white">
+                <div class="card-body text-center">
+                    <div class="text-white-50 small text-uppercase fw-bold mb-2">Estimasi Biaya (PLN)</div>
+                    <h1 class="display-6 fw-bold">Rp {{ number_format($totalBiaya, 0, ',', '.') }}</h1>
+                    <span class="text-white-50 small">Tarif: Rp 1.444/kWh</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div id="status-card" class="card border-0 shadow-sm rounded-4 {{ $statusSekarang == 'LAMP_ON' ? 'bg-success text-white' : 'bg-secondary text-white' }}">
                 <div class="card-body text-center">
                     <div class="text-white-50 small text-uppercase fw-bold mb-2">Status Lampu Saat Ini</div>
                     <h1 class="display-5 fw-bold">
-                        <i class="fas {{ $statusSekarang == 'LAMP_ON' ? 'fa-lightbulb' : 'fa-moon' }}"></i>
-                        {{ $statusSekarang == 'LAMP_ON' ? 'NYALA' : 'MATI' }}
+                        <i id="status-icon" class="fas {{ $statusSekarang == 'LAMP_ON' ? 'fa-lightbulb' : 'fa-moon' }}"></i>
+                        <span id="status-text">{{ $statusSekarang == 'LAMP_ON' ? 'NYALA' : 'MATI' }}</span>
                     </h1>
                     <span class="text-white-50 small">Live dari Database</span>
                 </div>
@@ -75,6 +86,21 @@
         </div>
     </div>
 
+    <!-- Row Diagram Garis (Penambahan Baru) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h5 class="fw-bold"><i class="fas fa-chart-line me-2 text-primary"></i>Tren Aktivasi 7 Hari Terakhir</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="activationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row History Log -->
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-header bg-white border-0 pt-3">
             <h5 class="fw-bold"><i class="fas fa-history me-2"></i>History Log Terkini</h5>
@@ -86,10 +112,10 @@
                         <th>Waktu (DB)</th>
                         <th>Perangkat</th>
                         <th>Kejadian</th>
-                        <th>Akurasi YOLO</th>
+                        <th class="text-center">Akurasi YOLO</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="log-table-body">
                     @forelse($activities as $log)
                     <tr>
                         <td class="small">{{ $log->created_at->format('H:i:s d-m-Y') }}</td>
@@ -113,36 +139,102 @@
         </div>
     </div>
 </div>
-</body>
 
 <script>
+    // Ambil data dari Laravel (Blade)
+    // Jika data kosong, default ke 7 hari terakhir secara manual (client-side)
+    const chartLabels = {!! json_encode($chartLabels) !!};
+    const chartData = {!! json_encode($chartData) !!};
+
+    const ctx = document.getElementById('activationChart').getContext('2d');
+    
+    // Inisialisasi Chart
+    const activationChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartLabels, // Isinya: ["09 Mei", "10 Mei", ..., "15 Mei"]
+            datasets: [{
+                label: 'Frekuensi Lampu Menyala',
+                data: chartData,
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3, // Membuat garis sedikit smooth
+                pointRadius: 6,
+                pointBackgroundColor: '#4e73df',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: 5, // Agar grafik tidak terlalu 'gepeng' jika data kecil
+                    ticks: { 
+                        stepSize: 1,
+                        font: { size: 11 }
+                    },
+                    grid: { color: '#ebedef' }
+                },
+                x: {
+                    ticks: { font: { size: 11 } },
+                    grid: { display: false }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#4e73df',
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 13 },
+                    displayColors: false,
+                    padding: 10
+                }
+            }
+        }
+    });
+
+    // Fungsi Refresh Data Otomatis
     function refreshData() {
-        fetch('/api/stats-dashboard') // Sesuaikan URL route kamu
+        fetch('/api/stats-dashboard') 
             .then(response => response.json())
             .then(data => {
-                // Update Angka Total
+                // 1. Update Statistik Angka
                 document.getElementById('total-nyala').innerText = data.totalNyala;
-                document.getElementById('avg-conf').innerText = data.avgConfidence;
+                document.getElementById('avg-conf').innerText = data.avgConfidence + '%';
                 
-                // Update Card Status
+                // 2. Update Status Lampu Visual
                 const statusCard = document.getElementById('status-card');
                 const statusText = document.getElementById('status-text');
+                const statusIcon = document.getElementById('status-icon');
                 
-                if(data.status === 'NYALA') {
-                    statusCard.classList.remove('bg-secondary');
-                    statusCard.classList.add('bg-success');
+                if(data.status === 'LAMP_ON' || data.status === 'NYALA') {
+                    statusCard.className = 'card border-0 shadow-sm rounded-4 bg-success text-white';
                     statusText.innerText = 'NYALA';
+                    statusIcon.className = 'fas fa-lightbulb';
                 } else {
-                    statusCard.classList.remove('bg-success');
-                    statusCard.classList.add('bg-secondary');
+                    statusCard.className = 'card border-0 shadow-sm rounded-4 bg-secondary text-white';
                     statusText.innerText = 'MATI';
+                    statusIcon.className = 'fas fa-moon';
                 }
 
-                // Update Tabel (Opsional: Rombak tabel lewat JS)
-            });
+                // 3. Update Chart secara Real-time (Opsional)
+                // Jika API kamu juga mengirim data chart terbaru:
+                if(data.latestChartData) {
+                    activationChart.data.datasets[0].data = data.latestChartData;
+                    activationChart.update();
+                }
+            })
+            .catch(error => console.error('Error fetching data:', error));
     }
 
-    // Jalankan tiap 2 detik
+    // Jalankan refresh setiap 2 detik
     setInterval(refreshData, 2000);
 </script>
+</body>
 </html>

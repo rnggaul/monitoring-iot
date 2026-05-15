@@ -41,50 +41,71 @@
 
 <div class="container py-4">
     <!-- Row Statistik Utama -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body text-center">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">Total Aktivasi Lampu</div>
-                    <h1 class="display-5 fw-bold text-dark" id="total-nyala">{{ $totalNyala }}</h1>
-                    <span class="badge bg-light text-muted">Berdasarkan Database</span>
-                </div>
+    <<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body text-center">
+                <div class="text-muted small text-uppercase fw-bold mb-2">Total Aktivasi Lampu</div>
+                <h1 class="display-5 fw-bold text-dark">{{ $totalNyala }}</h1>
+                <span class="badge bg-light text-muted">Berdasarkan Database</span>
             </div>
         </div>
+    </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body text-center">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">Rata-rata Akurasi YOLO</div>
-                    <h1 class="display-5 fw-bold text-primary" id="avg-conf">{{ number_format($avgConfidence * 100, 1) }}%</h1>
-                    <span class="badge bg-light text-muted">Validasi Computer Vision</span>
-                </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body text-center">
+                <div class="text-muted small text-uppercase fw-bold mb-2">Rata-rata Akurasi YOLO</div>
+                <h1 class="display-5 fw-bold text-primary">{{ number_format($avgConfidence * 100, 1) }}%</h1>
+                <span class="badge bg-light text-muted">Validasi Computer Vision</span>
             </div>
         </div>
+    </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 bg-gradient-primary text-white">
-                <div class="card-body text-center">
-                    <div class="text-white-50 small text-uppercase fw-bold mb-2">Estimasi Biaya (PLN)</div>
-                    <h1 class="display-6 fw-bold">Rp {{ number_format($totalBiaya, 0, ',', '.') }}</h1>
-                    <span class="text-white-50 small">Tarif: Rp 1.444/kWh</span>
-                </div>
+    <div class="col-md-4">
+        <div id="status-card" class="card border-0 shadow-sm rounded-4 h-100 {{ $statusSekarang == 'LAMP_ON' ? 'bg-success text-white' : 'bg-secondary text-white' }}">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <div class="text-white-50 small text-uppercase fw-bold mb-2">Status Lampu Saat Ini</div>
+                <h1 class="display-5 fw-bold">
+                    <i id="status-icon" class="fas {{ $statusSekarang == 'LAMP_ON' ? 'fa-lightbulb' : 'fa-moon' }}"></i>
+                    <span id="status-text">{{ $statusSekarang == 'LAMP_ON' ? 'NYALA' : 'MATI' }}</span>
+                </h1>
+                <span class="text-white-50 small">Live Monitoring</span>
             </div>
         </div>
+    </div>
+</div>
 
-        <div class="col-md-4">
-            <div id="status-card" class="card border-0 shadow-sm rounded-4 {{ $statusSekarang == 'LAMP_ON' ? 'bg-success text-white' : 'bg-secondary text-white' }}">
-                <div class="card-body text-center">
-                    <div class="text-white-50 small text-uppercase fw-bold mb-2">Status Lampu Saat Ini</div>
-                    <h1 class="display-5 fw-bold">
-                        <i id="status-icon" class="fas {{ $statusSekarang == 'LAMP_ON' ? 'fa-lightbulb' : 'fa-moon' }}"></i>
-                        <span id="status-text">{{ $statusSekarang == 'LAMP_ON' ? 'NYALA' : 'MATI' }}</span>
+<div class="row g-3 mb-4">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+            <div class="card-body d-flex align-items-center justify-content-between px-4">
+                <div>
+                    <div class="text-muted small text-uppercase fw-bold mb-1">Total Durasi Penggunaan</div>
+                    <h1 class="fw-bold text-dark mb-0">
+                        <i class="fas fa-clock text-warning me-2"></i>
+                        {{ floor($totalJam) }} <span class="fs-4 fw-normal text-muted">Jam</span> 
+                        {{ round(($totalJam - floor($totalJam)) * 60) }} <span class="fs-4 fw-normal text-muted">Menit</span>
                     </h1>
-                    <span class="text-white-50 small">Live dari Database</span>
+                </div>
+                <div class="text-end border-start ps-4">
+                    <span class="d-block small text-muted text-uppercase fw-bold">Estimasi Energi</span>
+                    <h4 class="mb-0 text-info fw-bold">{{ number_format(($totalJam * 10) / 1000, 4) }} <small>kWh</small></h4>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 bg-primary text-white">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <div class="text-white-50 small text-uppercase fw-bold mb-2">Estimasi Biaya (PLN)</div>
+                <h1 class="display-6 fw-bold mb-0">Rp {{ number_format($totalBiaya, 0, ',', '.') }}</h1>
+                <span class="text-white-50 small" style="font-size: 0.7rem;">Tarif: Rp 1.444/kWh</span>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Row Diagram Garis (Penambahan Baru) -->
     <div class="row mb-4">

@@ -31,8 +31,7 @@ class DashboardController extends Controller
         $currentEventType = optional($lastStatus)->event_type;
         $isLightOn = in_array($currentEventType, ['LAMP_ON', 'ON']);
 
-        // 5. LOGIKA PERHITUNGAN DURASI & BIAYA (PENAMBAHAN BARU)
-        // Kita ambil data secara ASC (lama ke baru) untuk menghitung selisih waktu
+        // 5. LOGIKA PERHITUNGAN DURASI & BIAYA (PERBAIKAN REAL-TIME)
         $allLogs = \App\Models\LampActivity::orderBy('created_at', 'asc')->get();
         $totalSeconds = 0;
         $tempOnTime = null;
@@ -45,6 +44,12 @@ class DashboardController extends Controller
                 $totalSeconds += $tempOnTime->diffInSeconds($log->created_at);
                 $tempOnTime = null; // Reset temp untuk sesi berikutnya
             }
+        }
+
+        // === BARIS PENYELAMAT (KONDISI JIKA LAMPU MASIH NYALA) ===
+        if ($tempOnTime != null) {
+            // Hitung durasi dari sejak menyala sampai DETIK INI (now())
+            $totalSeconds += $tempOnTime->diffInSeconds(now());
         }
 
         // Perhitungan Biaya Listrik

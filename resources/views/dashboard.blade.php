@@ -21,19 +21,12 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white py-3 mb-4 shadow-sm border-bottom">
     <div class="container">
         <a class="navbar-brand fw-bold d-flex align-items-center" href="#" style="color: #4e73df;">
-            <div class="bg-primary text-white rounded-3 p-2 me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                <i class="fas fa-bolt"></i>
-            </div>
             <div>
                 <span class="d-block lh-1">RAUL SMART-HOME</span>
                 <small class="text-muted fw-normal" style="font-size: 0.7rem;">IoT Energy Monitoring System</small>
             </div>
         </a>
         <div class="ms-auto d-flex align-items-center">
-            <span class="text-muted small me-3">
-                <i class="fas fa-circle text-success me-1" style="font-size: 8px;"></i> 
-                Server: <strong>{{ request()->ip() }}</strong>
-            </span>
             <button onclick="location.reload()" class="btn btn-sm btn-outline-primary"><i class="fas fa-sync"></i> Refresh</button>
         </div>
     </div>
@@ -41,7 +34,7 @@
 
 <div class="container py-4">
     <!-- Row Statistik Utama -->
-    <<div class="row g-3 mb-3">
+    <div class="row g-3 mb-3">
     <div class="col-md-4">
         <div class="card border-0 shadow-sm rounded-4 h-100">
             <div class="card-body text-center">
